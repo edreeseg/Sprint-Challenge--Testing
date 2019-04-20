@@ -9,7 +9,7 @@ server.get('/games', async (req, res) => {
     const games = await db('games');
     res.json({ games });
   } catch (error) {
-    res.status(500).json({ error });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -25,7 +25,35 @@ server.post('/games', async (req, res) => {
     const [id] = await db('games').insert(newGame);
     res.status(201).json({ id });
   } catch (error) {
-    res.status(500).json({ error });
+    if (error.message.includes('UNIQUE constraint'))
+      return res
+        .status(405)
+        .json({ error: 'Game title already exists in database' });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+server.get('/games/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [game] = await db('games').where({ id });
+    if (game) return res.status(200).json({ game });
+    else res.status(404).json({ error: 'No game found with that ID.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+server.delete('/games/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await db('games')
+      .where({ id })
+      .del();
+    if (deleted) return res.status(200).json({ deleted });
+    else res.status(404).json({ error: 'No game found with that ID.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
